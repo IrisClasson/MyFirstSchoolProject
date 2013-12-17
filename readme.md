@@ -1,4 +1,6 @@
-﻿For a long time I’ve wanted to do an OSS project, I’ve gotten to know so many fantastic people and I would love to learn and work together with them, with you. I just didn’t know what to do. What can I contribute? Well, by ugly ass code from my very first application- and a brilliant idea. That’s what I have.
+﻿**Please use the Base branch for branching - DO NOT use the Original branch for edits or branching**
+
+For a long time I’ve wanted to do an OSS project, I’ve gotten to know so many fantastic people and I would love to learn and work together with them, with you. I just didn’t know what to do. What can I contribute? Well, by ugly ass code from my very first application- and a brilliant idea. That’s what I have.
 
 I want us, together to code review and refactor the application and make it available to other developers to learn, mainly students and junior developers, to see how we that know this (more or less ha ha) would go about cleaning up this code. 
 I know it might end up being hard to read from the changes, but I will document the changes with ‘before and after’ explaining based on the commit messages what was done and why. Since the application is small, but still has many basic common features such as CRUD operations, working with images, saving serialized data to a file, events (only one I believe), UX, working with calendars and so on.
