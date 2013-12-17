@@ -30,7 +30,6 @@ Use Github Issues for codereview – each ‘comment’ can be an issue
 -	Use an event
 -	User friendly
 -	Good design (UI)
--    
 
 This application was a mini-CRM (Customer Relationship Management system) made in Windows Forms (we were not allowed to choose ourselves, and didn’t know anything else existed). On my team we were three developers, two of us had no programming experience from before, and one had done a year or two CS at uni. This was about 1 month into the education, and was our very first application aside from one console app and we had 7 working days to do this.
 
