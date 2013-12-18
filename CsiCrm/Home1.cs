@@ -25,13 +25,13 @@ namespace CsiCrm
             Controller.LoadNotes();
             Controller.AllAppointments = FileManager.GetAllAppointments();
             Controller.BirthdayGreetings = FileManager.GetBirthdaysFromXml();
-            cbCompanies.DataSource = Controller.AllCustomers();
+            cbCompanies.DataSource = Controller.AllCustomers;
             cbCompanies.SelectedItem = null;
             cbCustomerType.DataSource = Enum.GetNames(typeof (Customer.CustomerType)).ToList();
             cbCustomerType.SelectedItem = null;
             cbAppoinmentType.DataSource = Enum.GetValues(typeof (Appointment.AppointmentType));
             cbReminderType.DataSource = Enum.GetValues(typeof (Appointment.ReminderType));
-            cbCompany.DataSource = Controller.AllCustomers();
+            cbCompany.DataSource = Controller.AllCustomers;
             dgwCompanyContacts.DataSource = Controller.AllContacts.ToList();
             HideColumnsInContactDataGridView(dgwCompanyContacts);
             dataGridViewContacts.DataSource = Controller.AllContacts.ToList();
@@ -49,7 +49,7 @@ namespace CsiCrm
             lbEvents.DataSource = source;
             Controller.EventAdded += OnEventAdded;
             clbInterests.DataSource = Enum.GetNames(typeof (Contact.Interest));
-            cbCompanySearch.DataSource = Controller.AllCustomers();
+            cbCompanySearch.DataSource = Controller.AllCustomers;
             CreateRows();
             SetTimeInCalendar();
 
@@ -658,9 +658,7 @@ namespace CsiCrm
             else
             {
                 customer = ((Customer) cbCompanies.SelectedItem);
-                if (customer.Name == tbCompanyName.Text ||
-                    Controller.AllCustomers().Where(customername => customername.Name == tbCompanyName.Text).Count() ==
-                    0)
+                if (customer.Name == tbCompanyName.Text || !Controller.AllCustomers.Any(customername => customername.Name == tbCompanyName.Text))
                 {
                     nameIsOk = true;
                     Controller.RemoveCustomer(customer);
@@ -701,8 +699,7 @@ namespace CsiCrm
                 //if (Controller.AddCustomer(customer))
                 //{
                 cbCompanies.UpdateInfo();
-                cbCompanies.SelectedItem =
-                    (Controller.AllCustomers()).Where(name => name.Name == customer.Name).First();
+                cbCompanies.SelectedItem = (Controller.AllCustomers).First(name => name.Name == customer.Name);
                 //}
                 //else
                 //{
@@ -723,8 +720,7 @@ namespace CsiCrm
             {
                 btAddCompany.Text = "Update";
                 btAddContactToCompany.Show();
-                Customer selectedCustomer =
-                    (Controller.AllCustomers()).Where(name => name.Name == cbCompanies.Text).First();
+                Customer selectedCustomer = Controller.AllCustomers.First(name => name.Name == cbCompanies.Text);
                 btDelCompany.Show();
                 btClearSelection.Show();
                 btCompanyAddLogo.Show();
@@ -1030,7 +1026,7 @@ namespace CsiCrm
             if (tabCtrlCompanies.SelectedTab == tabViewCompanyNote)
             {
                 cbNoteSelectCompany.DataSource = null;
-                cbNoteSelectCompany.DataSource = Controller.AllCustomers();
+                cbNoteSelectCompany.DataSource = Controller.AllCustomers;
                 cbNoteSelectCompany.SelectedItem = null;
                 cbNoteCompanyNote.SelectedItem = null;
             }
@@ -1230,7 +1226,7 @@ namespace CsiCrm
                                                       DateTime.Now.Date.DayOfYear).ToList()
                                           };
             lbxAllNotes.DataSource = null;
-            lbxAllNotes.DataSource = new BindingSource {DataSource = Controller.AllNotesEver().ToList()};
+            lbxAllNotes.DataSource = new BindingSource {DataSource = Controller.AllNotesEver.ToList()};
             lbCompanyJournal.SelectedItem = null;
             lbContactsJournal.DataSource = new BindingSource {DataSource = Controller.AllContacts};
             lbContactsJournal.SelectedItem = null;
@@ -1475,11 +1471,11 @@ namespace CsiCrm
             if (tabCtrlJournal.SelectedTab == tabSearchAllNotes)
             {
                 lbxAllNotes.DataSource = null;
-                lbxAllNotes.DataSource = new BindingSource {DataSource = Controller.AllNotesEver().ToList()};
+                lbxAllNotes.DataSource = new BindingSource {DataSource = Controller.AllNotesEver.ToList()};
             }
             if (tabCtrlJournal.SelectedTab == tabJournalCompany)
             {
-                lbCompanyJournal.DataSource = new BindingSource {DataSource = Controller.AllCustomers()};
+                lbCompanyJournal.DataSource = new BindingSource {DataSource = Controller.AllCustomers};
             }
             if (tabCtrlJournal.SelectedTab == tabContactJournal)
                 lbContactsJournal.DataSource = new BindingSource {DataSource = Controller.AllContacts};
@@ -1506,7 +1502,7 @@ namespace CsiCrm
             var foundNotes = new BindingSource
                                  {
                                      DataSource =
-                                         (from note in Controller.AllNotesEver()
+                                         (from note in Controller.AllNotesEver
                                           where
                                               note.NoteText.ToLower().Contains(searchQuery) ||
                                               note.Subject.ToLower().Contains(searchQuery)
@@ -1523,7 +1519,7 @@ namespace CsiCrm
             var searchQuery = mcInSearchNotes.SelectionStart.Date;
             var noteByDate = new BindingSource
                                  {
-                                     DataSource = (from note in Controller.AllNotesEver()
+                                     DataSource = (from note in Controller.AllNotesEver
                                                    where note.DateAdded.Date == searchQuery.Date
                                                    select note).ToList()
                                  };

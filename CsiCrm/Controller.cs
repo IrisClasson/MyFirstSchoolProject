@@ -6,31 +6,32 @@ using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Windows.Forms;
 
-
 namespace CsiCrm
 {
-
     public static class Controller
     {
-
-        public static List<Appointment> AllAppointments = new List<Appointment>();
-        
-        private static List<Customer> _allCustomers = new List<Customer>();
-        
-        public static List<Contact> AllContacts = new List<Contact>();
-        
-        public static List<Birthday> BirthdayGreetings = new List<Birthday>();
-
-        private static List<Note> _allNotesEver = new List<Note>();
-
-        public static List<Note> AllNotesEver()
+        static Controller()
         {
-            return _allNotesEver;
+            AllAppointments = new List<Appointment>();
+            BirthdayGreetings = new List<Birthday>();
+            AllContacts = new List<Contact>();
+            AllNotesEver = new List<Note>();
+            AllCustomers = new List<Customer>();
         }
+
+        public static List<Customer> AllCustomers { get; private set; }
+
+        public static List<Contact> AllContacts { get; set; }
+
+        public static List<Birthday> BirthdayGreetings { get; set; }
+
+        public static List<Appointment> AllAppointments { get; set; }
+
+        public static List<Note> AllNotesEver { get; private set; }
 
         public static void AddNote(Note noteToAdd)
         {
-            _allNotesEver.Add(noteToAdd);
+            AllNotesEver.Add(noteToAdd);
             SaveNotes();
         }
 
@@ -38,35 +39,32 @@ namespace CsiCrm
         {
             var formatter = new BinaryFormatter();
 
-            Stream output = File.Create("Notes.xml");
-
-            formatter.Serialize(output, _allNotesEver);
-
-            output.Close();
+            using (Stream output = File.Create("Notes.xml"))
+            {
+                formatter.Serialize(output, AllNotesEver);
+            }
         }
 
         public static void LoadNotes()
         {
             var formatter = new BinaryFormatter();
-            var input = File.Exists("Notes.xml") ? File.OpenRead("Notes.xml") : File.Create("Notes.xml");
-            if (input.Length > 0)
-                _allNotesEver = (List<Note>)formatter.Deserialize(input);
-
-            input.Close();
-
+            using (var input = File.Open("Notes.xml", FileMode.OpenOrCreate))
+            {
+                if (input.Length > 0)
+                    AllNotesEver = (List<Note>)formatter.Deserialize(input);
+            }
         }
 
         public static string ImageDir(string foldername)
         {
-            var outputDir = Environment.CurrentDirectory;
+            var saveDir = Path.Combine(Environment.CurrentDirectory, foldername);
 
-            var saveDir = new DirectoryInfo(outputDir + @"\{0}\".Args(foldername));
-
-            if (!saveDir.Exists)
+            if (!Directory.Exists(saveDir))
             {
-                Directory.CreateDirectory(outputDir + @"\{0}\".Args(foldername));
+                Directory.CreateDirectory(saveDir);
             }
-            return saveDir.ToString();
+
+            return saveDir;
         }
 
         public delegate void EventsMethodType(Appointment appointment);
@@ -75,41 +73,33 @@ namespace CsiCrm
 
         public static void AddAppointment(Appointment appointment)
         {
-
             AllAppointments.Add(appointment);
             if (EventAdded != null)
                 EventAdded(appointment);
         }
 
-        public static List<Customer> AllCustomers()
-        {
-            return _allCustomers;
-        }
 
         public static bool AddCustomer(Customer customerToAdd)
         {
             bool result = true;
-            if (_allCustomers.Where(customer => customer.Name == customerToAdd.Name).Count() != 0)
+            if (AllCustomers.Any(customer => customer.Name == customerToAdd.Name))
             {
                 result = false;
             }
             else
             {
-                _allCustomers.Add(customerToAdd);
+                AllCustomers.Add(customerToAdd);
                 SaveCustomers();
             }
             return result;
-
-
         }
 
-
-        public static string AvalibleImageFormats()
+        public static string AvailableImageFormats()
         {
             var codecs = ImageCodecInfo.GetImageEncoders();
             var formatName = new List<string>();
             var fileExtension = new List<string>();
-            string avalibleImageFormats = "";
+            string availableImageFormats = "";
 
             foreach (var imageCodecInfo in codecs)
             {
@@ -119,21 +109,21 @@ namespace CsiCrm
 
             for (var numberOfFormatsCounter = 0; numberOfFormatsCounter < formatName.Count; numberOfFormatsCounter++)
             {
-                avalibleImageFormats += numberOfFormatsCounter != formatName.Count - 1
+                availableImageFormats += numberOfFormatsCounter != formatName.Count - 1
                             ? "{0}|{1}|".Args(formatName[numberOfFormatsCounter], fileExtension[numberOfFormatsCounter])
                             : "{0}|{1}".Args(formatName[numberOfFormatsCounter], fileExtension[numberOfFormatsCounter]);
             }
-            return avalibleImageFormats;
+            return availableImageFormats;
         }
 
         public static string AddPicture(string pictureDirectory, string fileName)
         {
-            var avalibleImageFormats = AvalibleImageFormats();
+            var availableImageFormats = AvailableImageFormats();
             var savePath = "";
             var openFileDialog1 = new OpenFileDialog
             {
                 InitialDirectory = "c:\\",
-                Filter = avalibleImageFormats,
+                Filter = availableImageFormats,
                 FilterIndex = 2,
                 RestoreDirectory = true
             };
@@ -156,7 +146,7 @@ namespace CsiCrm
 
         internal static void RemoveCustomer(Customer customer)
         {
-            _allCustomers.Remove(customer);
+            AllCustomers.Remove(customer);
             SaveCustomers();
         }
 
@@ -164,29 +154,28 @@ namespace CsiCrm
         {
             var formatter = new BinaryFormatter();
 
-            Stream output = File.Create("Company.xml");
-
-            formatter.Serialize(output, _allCustomers);
-
-            output.Close();
+            using (Stream output = File.Create("Company.xml"))
+            {
+                formatter.Serialize(output, AllCustomers);
+            }
         }
 
         internal static void LoadCustomers()
         {
             var formatter = new BinaryFormatter();
 
-            
-            var input = File.Exists("Company.xml") ? File.OpenRead("Company.xml") : File.Create("Company.xml");
-            if (input.Length > 0)
-                 _allCustomers = (List<Customer>)formatter.Deserialize(input);
-
-            input.Close();
-
+            using (var input = File.Open("Company.xml", FileMode.OpenOrCreate))
+            {
+                if (input.Length > 0)
+                    AllCustomers = (List<Customer>)formatter.Deserialize(input);
+            }
         }
+
         internal static string ChangeLogoName(string oldFileName, string newFileName)
         {
             var extension = Path.GetExtension(oldFileName);
             var oldPath = Path.GetDirectoryName(oldFileName);
+
             newFileName = oldPath + @"\" + newFileName + extension;
             File.Move(oldFileName, newFileName);
             return newFileName;
@@ -198,7 +187,7 @@ namespace CsiCrm
             var openFileDialog1 = new OpenFileDialog
             {
                 InitialDirectory = "c:\\",
-                Filter = AvalibleImageFormats(),
+                Filter = AvailableImageFormats(),
                 FilterIndex = 2,
                 RestoreDirectory = true
             };
@@ -226,7 +215,7 @@ namespace CsiCrm
             var openFileDialog1 = new OpenFileDialog
             {
                 InitialDirectory = "c:\\",
-                Filter = AvalibleImageFormats(),
+                Filter = AvailableImageFormats(),
                 FilterIndex = 2,
                 RestoreDirectory = true
             };
@@ -249,7 +238,7 @@ namespace CsiCrm
 
         internal static void AddBirthdayGreetings(Birthday birthday)
         {
-            if (BirthdayGreetings.Where(day => day.WhosBirthday == birthday.WhosBirthday).Count() < 1)
+            if (!BirthdayGreetings.Any(day => day.WhosBirthday == birthday.WhosBirthday))
                 BirthdayGreetings.Add(birthday);
         }
     }
