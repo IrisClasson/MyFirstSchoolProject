@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Windows.Forms;
 
 namespace CsiCrm
@@ -12,47 +11,27 @@ namespace CsiCrm
     {
         static Controller()
         {
-            AllAppointments = new List<Appointment>();
-            BirthdayGreetings = new List<Birthday>();
-            AllContacts = new List<Contact>();
-            AllNotesEver = new List<Note>();
-            AllCustomers = new List<Customer>();
+            Appointments = new BinaryFileRepository<Appointment>("Appointment.xml");
+            BirthdayGreetings = new BinaryFileRepository<Birthday>("Birthdays.xml");
+            Notes = new BinaryFileRepository<Note>("Notes.xml");
+            Customers = new BinaryFileRepository<Customer>("Company.xml");
+            Contacts = new BinaryFileRepository<Contact>("Contacts.xml");
         }
 
-        public static List<Customer> AllCustomers { get; private set; }
+        public static IRepository<Customer> Customers { get; private set; }
 
-        public static List<Contact> AllContacts { get; set; }
+        public static IRepository<Contact> Contacts { get; set; }
 
-        public static List<Birthday> BirthdayGreetings { get; set; }
+        public static IRepository<Birthday> BirthdayGreetings { get; set; }
 
-        public static List<Appointment> AllAppointments { get; set; }
+        public static IRepository<Appointment> Appointments { get; set; }
 
-        public static List<Note> AllNotesEver { get; private set; }
+        public static IRepository<Note> Notes { get; private set; }
 
         public static void AddNote(Note noteToAdd)
         {
-            AllNotesEver.Add(noteToAdd);
-            SaveNotes();
-        }
-
-        public static void SaveNotes()
-        {
-            var formatter = new BinaryFormatter();
-
-            using (Stream output = File.Create("Notes.xml"))
-            {
-                formatter.Serialize(output, AllNotesEver);
-            }
-        }
-
-        public static void LoadNotes()
-        {
-            var formatter = new BinaryFormatter();
-            using (var input = File.Open("Notes.xml", FileMode.OpenOrCreate))
-            {
-                if (input.Length > 0)
-                    AllNotesEver = (List<Note>)formatter.Deserialize(input);
-            }
+            Notes.Add(noteToAdd);
+            Notes.Save();
         }
 
         public static string ImageDir(string foldername)
@@ -73,23 +52,22 @@ namespace CsiCrm
 
         public static void AddAppointment(Appointment appointment)
         {
-            AllAppointments.Add(appointment);
+            Appointments.Add(appointment);
             if (EventAdded != null)
                 EventAdded(appointment);
         }
 
-
         public static bool AddCustomer(Customer customerToAdd)
         {
             bool result = true;
-            if (AllCustomers.Any(customer => customer.Name == customerToAdd.Name))
+            if (Customers.Any(customer => customer.Name == customerToAdd.Name))
             {
                 result = false;
             }
             else
             {
-                AllCustomers.Add(customerToAdd);
-                SaveCustomers();
+                Customers.Add(customerToAdd);
+                Customers.Save();
             }
             return result;
         }
@@ -146,29 +124,8 @@ namespace CsiCrm
 
         internal static void RemoveCustomer(Customer customer)
         {
-            AllCustomers.Remove(customer);
-            SaveCustomers();
-        }
-
-        internal static void SaveCustomers()
-        {
-            var formatter = new BinaryFormatter();
-
-            using (Stream output = File.Create("Company.xml"))
-            {
-                formatter.Serialize(output, AllCustomers);
-            }
-        }
-
-        internal static void LoadCustomers()
-        {
-            var formatter = new BinaryFormatter();
-
-            using (var input = File.Open("Company.xml", FileMode.OpenOrCreate))
-            {
-                if (input.Length > 0)
-                    AllCustomers = (List<Customer>)formatter.Deserialize(input);
-            }
+            Customers.Remove(customer);
+            Customers.Save();
         }
 
         internal static string ChangeLogoName(string oldFileName, string newFileName)
