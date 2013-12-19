@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
@@ -24,6 +26,11 @@ namespace CsiCrm
             infoholder.DataSource = cbx.DataSource;
             cbx.DataSource = null;
             cbx.DataSource = infoholder.DataSource;
+        }
+
+        public static IList AsListSource<T>(this IRepository<T> repository)
+        {
+            return repository.ToList();
         }
 
     }

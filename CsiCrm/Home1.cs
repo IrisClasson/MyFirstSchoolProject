@@ -20,36 +20,36 @@ namespace CsiCrm
         public Home1()
         {
             InitializeComponent();
-            Controller.AllContacts = FileManager.GetContactsFromXml();
-            Controller.LoadCustomers();
-            Controller.LoadNotes();
-            Controller.AllAppointments = FileManager.GetAllAppointments();
-            Controller.BirthdayGreetings = FileManager.GetBirthdaysFromXml();
-            cbCompanies.DataSource = Controller.AllCustomers();
+            Controller.Contacts.Load();
+            Controller.Customers.Load();
+            Controller.Notes.Load();
+            Controller.Appointments.Load();
+            Controller.BirthdayGreetings.Load();
+            cbCompanies.DataSource = Controller.Customers.AsListSource();
             cbCompanies.SelectedItem = null;
             cbCustomerType.DataSource = Enum.GetNames(typeof (Customer.CustomerType)).ToList();
             cbCustomerType.SelectedItem = null;
             cbAppoinmentType.DataSource = Enum.GetValues(typeof (Appointment.AppointmentType));
             cbReminderType.DataSource = Enum.GetValues(typeof (Appointment.ReminderType));
-            cbCompany.DataSource = Controller.AllCustomers();
-            dgwCompanyContacts.DataSource = Controller.AllContacts.ToList();
+            cbCompany.DataSource = Controller.Customers.AsListSource();
+            dgwCompanyContacts.DataSource = Controller.Contacts.ToList();
             HideColumnsInContactDataGridView(dgwCompanyContacts);
-            dataGridViewContacts.DataSource = Controller.AllContacts.ToList();
+            dataGridViewContacts.DataSource = Controller.Contacts.ToList();
             HideColumnsInContactDataGridView(dataGridViewContacts);
-            dgvViewAppoinments.DataSource = Controller.AllAppointments.ToList();
+            dgvViewAppoinments.DataSource = Controller.Appointments.ToList();
             var dataGridViewColumn = dgvViewAppoinments.Columns["DateTimeStart"];
             if (dataGridViewColumn != null)
                 dataGridViewColumn.DisplayIndex = 0;
             var source = new BindingSource
                              {
                                  DataSource =
-                                     Controller.AllAppointments.ToList().Where(
+                                     Controller.Appointments.ToList().Where(
                                          apointment => apointment.DateTimeStart.Date >= DateTime.Now.Date).ToList()
                              };
             lbEvents.DataSource = source;
             Controller.EventAdded += OnEventAdded;
             clbInterests.DataSource = Enum.GetNames(typeof (Contact.Interest));
-            cbCompanySearch.DataSource = Controller.AllCustomers();
+            cbCompanySearch.DataSource = Controller.Customers.AsListSource();
             CreateRows();
             SetTimeInCalendar();
 
@@ -60,7 +60,7 @@ namespace CsiCrm
             var source = new BindingSource
                              {
                                  DataSource =
-                                     Controller.AllAppointments.ToList().Where(
+                                     Controller.Appointments.ToList().Where(
                                          apointment => apointment.DateTimeStart.Date >= DateTime.Now.Date).ToList()
                              };
             lbEvents.DataSource = source;
@@ -126,8 +126,7 @@ namespace CsiCrm
                 errorProvider1.SetError(dtpAppointmentDateStart, "Not available date or time, check calendar");
             }
 
-
-            FileManager.SaveFileAsXml();
+            Controller.Appointments.Save();
         }
 
         private void ClearAppointmentBoxes()
@@ -152,7 +151,7 @@ namespace CsiCrm
         private void HideColumnsInContactDataGridView(DataGridView dataGridView)
         {
             dataGridView.DataSource = null;
-            dataGridView.DataSource = Controller.AllContacts.ToList();
+            dataGridView.DataSource = Controller.Contacts.ToList();
 
             var dataGridViewColumn = dataGridView.Columns["Image"];
             if (dataGridViewColumn != null) dataGridViewColumn.Visible = false;
@@ -217,7 +216,7 @@ namespace CsiCrm
         //What a lovely little method :)
         private bool CheckSsn(string ssn)
         {
-            return Controller.AllContacts.All(contact => ssn != contact.Ssn);
+            return Controller.Contacts.All(contact => ssn != contact.Ssn);
         }
 
 
@@ -248,7 +247,7 @@ namespace CsiCrm
             if (dataGridViewContacts.SelectedRows.Count > 0)
             {
                 _contactEdit =
-                    Controller.AllContacts.Where(
+                    Controller.Contacts.Where(
                         contact => contact.Ssn == (string) dataGridViewContacts.SelectedRows[0].Cells["Ssn"].Value).
                         First();
 
@@ -294,7 +293,7 @@ namespace CsiCrm
             btSaveEditedContact.Hide();
             pbHome.Hide();
             btCreateRela.Hide();
-            if (Controller.AllContacts.Count == 0)
+            if (!Controller.Contacts.Any())
                 btDeleteContact.Hide();
             tabCtrlJournal.Hide();
         }
@@ -320,16 +319,16 @@ namespace CsiCrm
                                                                 Country = tbxCountry.Text
                                                             }
                                    };
-                Controller.AllContacts.Add(_contactEdit);
+                Controller.Contacts.Add(_contactEdit);
                 Controller.AddBirthdayGreetings(new Birthday(_contactEdit)
                                                     {
                                                         DateTimeStart = dtpDateOfBirth.Value.Date
                                                     });
 
-                FileManager.SaveContacts();
+                Controller.Contacts.Save();
 
                 dataGridViewContacts.DataSource = null;
-                dataGridViewContacts.DataSource = Controller.AllContacts.ToList();
+                dataGridViewContacts.DataSource = Controller.Contacts.ToList();
                 HideColumnsInContactDataGridView(dataGridViewContacts);
                 errorProvider.Clear();
                 ClearContactInformation();
@@ -431,7 +430,7 @@ namespace CsiCrm
         private void BtUploadClick(object sender, EventArgs e)
         {
             _contactEdit =
-                Controller.AllContacts.Where(
+                Controller.Contacts.Where(
                     contact => contact.Ssn == (string) dataGridViewContacts.SelectedRows[0].Cells["Ssn"].Value).
                     First();
 
@@ -442,9 +441,10 @@ namespace CsiCrm
                 pbxImage.Image = Image.FromStream(ms);
                 _contactEdit.Image = _logo;
             }
-
             else
-                FileManager.SaveContacts();
+            {
+                Controller.Contacts.Save();
+            }
             _logo = String.Empty;
         }
 
@@ -511,8 +511,9 @@ namespace CsiCrm
             else
                 errorProvider.SetError(btCreateRela,
                                        "Must Select or Create Contact" + Environment.NewLine + "and fill in all fields");
-            FileManager.SaveContacts();
-            FileManager.SaveBirthdays();
+            
+            Controller.Contacts.Save();
+            Controller.BirthdayGreetings.Save();
         }
 
         private void BtEditClick1(object sender, EventArgs e)
@@ -536,11 +537,12 @@ namespace CsiCrm
             _contactEdit.ContactAddress.Country = tbxCountry.Text;
 
 
-            FileManager.SaveContacts();
-            FileManager.SaveBirthdays();
+            Controller.Contacts.Save();
+            Controller.BirthdayGreetings.Save();
+
             pbxImage.Image = null;
             dataGridViewContacts.DataSource = null;
-            dataGridViewContacts.DataSource = Controller.AllContacts.ToList();
+            dataGridViewContacts.DataSource = Controller.Contacts.ToList();
             HideColumnsInContactDataGridView(dataGridViewContacts);
             ClearContactInformation();
             btSaveEditedContact.Hide();
@@ -552,16 +554,16 @@ namespace CsiCrm
             if (dataGridViewContacts.SelectedRows.Count > 0)
             {
                 Contact contactToRemove =
-                    Controller.AllContacts.Where(
+                    Controller.Contacts.Where(
                         contact => contact.Ssn == (string) dataGridViewContacts.SelectedRows[0].Cells["Ssn"].Value).
                         First();
 
-                Controller.AllContacts.Remove(contactToRemove);
+                Controller.Contacts.Remove(contactToRemove);
 
-                FileManager.SaveContacts();
+                Controller.Contacts.Save();
 
                 dataGridViewContacts.DataSource = null;
-                dataGridViewContacts.DataSource = Controller.AllContacts.ToList();
+                dataGridViewContacts.DataSource = Controller.Contacts.ToList();
                 HideColumnsInContactDataGridView(dataGridViewContacts);
             }
         }
@@ -597,12 +599,12 @@ namespace CsiCrm
             if (tabCtrlContact.SelectedTab == tabAddDetails)
             {
                 cbContactToAddDetail.DataSource = null;
-                cbContactToAddDetail.DataSource = Controller.AllContacts;
+                cbContactToAddDetail.DataSource = Controller.Contacts;
             }
             if (tabCtrlContact.SelectedTab != tabContactNote) return;
             cbContactNoteContact.DataSource = null;
             cbContactNoteRelative.DataSource = null;
-            cbContactNoteContact.DataSource = Controller.AllContacts;
+            cbContactNoteContact.DataSource = Controller.Contacts;
             cbContactNoteContact.SelectedItem = null;
         }
 
@@ -619,7 +621,7 @@ namespace CsiCrm
         private void TabCtrlAppoinmentsSelected(object sender, TabControlEventArgs e)
         {
             dgvViewAppoinments.DataSource = null;
-            dgvViewAppoinments.DataSource = Controller.AllAppointments.ToList();
+            dgvViewAppoinments.DataSource = Controller.Appointments.ToList();
             HideColumnsInDataGridView();
         }
 
@@ -658,9 +660,7 @@ namespace CsiCrm
             else
             {
                 customer = ((Customer) cbCompanies.SelectedItem);
-                if (customer.Name == tbCompanyName.Text ||
-                    Controller.AllCustomers().Where(customername => customername.Name == tbCompanyName.Text).Count() ==
-                    0)
+                if (customer.Name == tbCompanyName.Text || !Controller.Customers.Any(customername => customername.Name == tbCompanyName.Text))
                 {
                     nameIsOk = true;
                     Controller.RemoveCustomer(customer);
@@ -701,8 +701,7 @@ namespace CsiCrm
                 //if (Controller.AddCustomer(customer))
                 //{
                 cbCompanies.UpdateInfo();
-                cbCompanies.SelectedItem =
-                    (Controller.AllCustomers()).Where(name => name.Name == customer.Name).First();
+                cbCompanies.SelectedItem = (Controller.Customers).First(name => name.Name == customer.Name);
                 //}
                 //else
                 //{
@@ -723,8 +722,7 @@ namespace CsiCrm
             {
                 btAddCompany.Text = "Update";
                 btAddContactToCompany.Show();
-                Customer selectedCustomer =
-                    (Controller.AllCustomers()).Where(name => name.Name == cbCompanies.Text).First();
+                Customer selectedCustomer = Controller.Customers.First(name => name.Name == cbCompanies.Text);
                 btDelCompany.Show();
                 btClearSelection.Show();
                 btCompanyAddLogo.Show();
@@ -800,9 +798,10 @@ namespace CsiCrm
             _appointmentToEdit.ReminderDate = dtpReminderDate.Value.Date;
             _appointmentToEdit.ReminderTime = dtpReminderTime.Value;
             _appointmentToEdit.Notes.NoteText = rtbNotes.Text;
-            FileManager.SaveFileAsXml();
+
+            Controller.Appointments.Save();
             dgvViewAppoinments.DataSource = null;
-            dgvViewAppoinments.DataSource = Controller.AllAppointments.ToList();
+            dgvViewAppoinments.DataSource = Controller.Appointments.ToList();
 
             ClearAppointmentBoxes();
         }
@@ -812,7 +811,7 @@ namespace CsiCrm
             if (dgvViewAppoinments.SelectedRows.Count > 0)
             {
                 _appointmentToEdit =
-                    Controller.AllAppointments.Where(
+                    Controller.Appointments.Where(
                         appointment =>
                         appointment.Subject == (string) dgvViewAppoinments.SelectedRows[0].Cells["Subject"].Value).First
                         ();
@@ -840,7 +839,7 @@ namespace CsiCrm
             if (dgvViewAppoinments.SelectedRows.Count > 0)
             {
                 _appointmentToEdit =
-                    Controller.AllAppointments.Where(
+                    Controller.Appointments.Where(
                         appointment =>
                         appointment.Subject == (string) dgvViewAppoinments.SelectedRows[0].Cells["Subject"].Value).First
                         ();
@@ -911,14 +910,14 @@ namespace CsiCrm
             if (dgwCompanyContacts.SelectedRows.Count > 0)
             {
                 var contactToAdd =
-                    (Controller.AllContacts).Where(
+                    (Controller.Contacts).Where(
                         contact => contact.Ssn == (string) dgwCompanyContacts.SelectedRows[0].Cells["Ssn"].Value).First();
                 if (!((Customer) cbCompanies.SelectedItem).Contacts.Contains(contactToAdd))
                     ((Customer) cbCompanies.SelectedItem).Contacts.Add(contactToAdd);
 
                 CbCompaniesSelectedIndexChanged(this, e);
             }
-            Controller.SaveCustomers();
+            Controller.Customers.Save();
         }
 
 
@@ -983,9 +982,9 @@ namespace CsiCrm
             ((Customer) cbNoteSelectCompany.SelectedItem).Notes.Add(noteToAdd);
             cbNoteSelectCompany.UpdateInfo();
 
-            Controller.SaveCustomers();
+            Controller.Customers.Save();
             Controller.AddNote(noteToAdd);
-            Controller.SaveNotes();
+            Controller.Notes.Save();
         }
 
         private void CbNoteCompanyNoteSelectedIndexChanged(object sender, EventArgs e)
@@ -1017,7 +1016,7 @@ namespace CsiCrm
         {
             ((Customer) cbNoteSelectCompany.SelectedItem).Notes.Remove((Note) (cbNoteCompanyNote.SelectedItem));
             cbNoteSelectCompany.UpdateInfo();
-            Controller.SaveCustomers();
+            Controller.Customers.Save();
         }
 
         private void BtContactToCompanyClick(object sender, EventArgs e)
@@ -1030,7 +1029,7 @@ namespace CsiCrm
             if (tabCtrlCompanies.SelectedTab == tabViewCompanyNote)
             {
                 cbNoteSelectCompany.DataSource = null;
-                cbNoteSelectCompany.DataSource = Controller.AllCustomers();
+                cbNoteSelectCompany.DataSource = Controller.Customers;
                 cbNoteSelectCompany.SelectedItem = null;
                 cbNoteCompanyNote.SelectedItem = null;
             }
@@ -1038,7 +1037,7 @@ namespace CsiCrm
             {
                 dgwCompanyContacts.ClearSelection();
                 dgwCompanyContacts.DataSource = null;
-                dgwCompanyContacts.DataSource = Controller.AllContacts.ToList();
+                dgwCompanyContacts.DataSource = Controller.Contacts.ToList();
                 dgwCompanyContacts.Columns["Image"].Visible = false;
             }
         }
@@ -1048,7 +1047,7 @@ namespace CsiCrm
             if (rbtSearchwordAppointment.Checked)
             {
                 var searchQuery = tbSearchQuery.Text.ToLower();
-                var chosenAppointment = from appointment in Controller.AllAppointments
+                var chosenAppointment = from appointment in Controller.Appointments
                                         where appointment.Subject.ToLower().Contains(searchQuery)
                                         select appointment;
 
@@ -1060,7 +1059,7 @@ namespace CsiCrm
             {
                 var searchQuery = mcAppointments.SelectionStart.Date;
 
-                var chosenAppointment = from appointment in Controller.AllAppointments
+                var chosenAppointment = from appointment in Controller.Appointments
                                         where appointment.DateTimeStart == searchQuery
                                         select appointment;
 
@@ -1073,7 +1072,7 @@ namespace CsiCrm
                 var searchQuery = tbSearchAppointmentsByContact.Text.ToLower();
 
 
-                var selected = (from apointment in Controller.AllAppointments
+                var selected = (from apointment in Controller.Appointments
                                 from contact in apointment.Company.Contacts
                                 where
                                     contact.FirstName.ToLower().Contains(searchQuery) ||
@@ -1087,7 +1086,7 @@ namespace CsiCrm
             {
                 var searchQuery = cbCompanySearch.Text;
 
-                var chosenAppointment = from appointment in Controller.AllAppointments
+                var chosenAppointment = from appointment in Controller.Appointments
                                         where appointment.Company.Name == searchQuery
                                         select appointment;
 
@@ -1100,17 +1099,16 @@ namespace CsiCrm
             if (dgvViewAppoinments.SelectedRows.Count > 0)
             {
                 Appointment appointmentToRemove =
-                    Controller.AllAppointments.Where(
+                    Controller.Appointments.Where(
                         appointment =>
                         appointment.Subject == (string) dgvViewAppoinments.SelectedRows[0].Cells["Subject"].Value).First
                         ();
 
-                Controller.AllAppointments.Remove(appointmentToRemove);
-
-                FileManager.SaveFileAsXml();
+                Controller.Appointments.Remove(appointmentToRemove);
+                Controller.Appointments.Save();
 
                 dgvViewAppoinments.DataSource = null;
-                dgvViewAppoinments.DataSource = Controller.AllAppointments;
+                dgvViewAppoinments.DataSource = Controller.Appointments;
 
                 HideColumnsInDataGridView();
             }
@@ -1171,7 +1169,7 @@ namespace CsiCrm
 
             DateTime searchQuery = mcForDayCalendar.SelectionStart.Date;
 
-            var chosenAppointment = from appointment in Controller.AllAppointments
+            var chosenAppointment = from appointment in Controller.Appointments
                                     where appointment.DateTimeStart == searchQuery
                                     select appointment;
 
@@ -1230,9 +1228,9 @@ namespace CsiCrm
                                                       DateTime.Now.Date.DayOfYear).ToList()
                                           };
             lbxAllNotes.DataSource = null;
-            lbxAllNotes.DataSource = new BindingSource {DataSource = Controller.AllNotesEver().ToList()};
+            lbxAllNotes.DataSource = new BindingSource {DataSource = Controller.Notes.ToList()};
             lbCompanyJournal.SelectedItem = null;
-            lbContactsJournal.DataSource = new BindingSource {DataSource = Controller.AllContacts};
+            lbContactsJournal.DataSource = new BindingSource {DataSource = Controller.Contacts};
             lbContactsJournal.SelectedItem = null;
         }
 
@@ -1277,7 +1275,7 @@ namespace CsiCrm
         private bool CheckDateTimeCollision(DateTime start, DateTime end, DateTime date)
         {
             return
-                Controller.AllAppointments.Where(appointment => date == appointment.DateTimeStart.Date).All(
+                Controller.Appointments.Where(appointment => date == appointment.DateTimeStart.Date).All(
                     appointment =>
                     (start.Hour < appointment.TimeStart.Hour && end.Hour < appointment.TimeStart.Hour) &&
                     (start.Hour <= appointment.TimeEnd.Hour));
@@ -1415,7 +1413,7 @@ namespace CsiCrm
             tbContactNoteSubject.Text = string.Empty;
             rtbContactNoteBody.Text = string.Empty;
 
-            FileManager.SaveContacts();
+            Controller.Contacts.Save();
         }
 
         private void CbContactNoteNoteSelectedIndexChanged(object sender, EventArgs e)
@@ -1466,8 +1464,9 @@ namespace CsiCrm
 
             personToEdit.Notes.Remove((Note) (cbContactNoteNote.SelectedItem));
             cbContactNoteContact.UpdateInfo();
-            Controller.SaveNotes();
-            FileManager.SaveContacts();
+
+            Controller.Notes.Save();
+            Controller.Contacts.Save();
         }
 
         private void TabCtrlJournalSelectedIndexChanged(object sender, EventArgs e)
@@ -1475,14 +1474,14 @@ namespace CsiCrm
             if (tabCtrlJournal.SelectedTab == tabSearchAllNotes)
             {
                 lbxAllNotes.DataSource = null;
-                lbxAllNotes.DataSource = new BindingSource {DataSource = Controller.AllNotesEver().ToList()};
+                lbxAllNotes.DataSource = new BindingSource {DataSource = Controller.Notes.ToList()};
             }
             if (tabCtrlJournal.SelectedTab == tabJournalCompany)
             {
-                lbCompanyJournal.DataSource = new BindingSource {DataSource = Controller.AllCustomers()};
+                lbCompanyJournal.DataSource = new BindingSource {DataSource = Controller.Customers};
             }
             if (tabCtrlJournal.SelectedTab == tabContactJournal)
-                lbContactsJournal.DataSource = new BindingSource {DataSource = Controller.AllContacts};
+                lbContactsJournal.DataSource = new BindingSource {DataSource = Controller.Contacts};
         }
 
         private void LbxAllNotesSelectedIndexChanged(object sender, EventArgs e)
@@ -1506,7 +1505,7 @@ namespace CsiCrm
             var foundNotes = new BindingSource
                                  {
                                      DataSource =
-                                         (from note in Controller.AllNotesEver()
+                                         (from note in Controller.Notes
                                           where
                                               note.NoteText.ToLower().Contains(searchQuery) ||
                                               note.Subject.ToLower().Contains(searchQuery)
@@ -1523,7 +1522,7 @@ namespace CsiCrm
             var searchQuery = mcInSearchNotes.SelectionStart.Date;
             var noteByDate = new BindingSource
                                  {
-                                     DataSource = (from note in Controller.AllNotesEver()
+                                     DataSource = (from note in Controller.Notes
                                                    where note.DateAdded.Date == searchQuery.Date
                                                    select note).ToList()
                                  };

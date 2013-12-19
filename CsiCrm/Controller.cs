@@ -3,70 +3,47 @@ using System.Collections.Generic;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Windows.Forms;
-
 
 namespace CsiCrm
 {
-
     public static class Controller
     {
-
-        public static List<Appointment> AllAppointments = new List<Appointment>();
-        
-        private static List<Customer> _allCustomers = new List<Customer>();
-        
-        public static List<Contact> AllContacts = new List<Contact>();
-        
-        public static List<Birthday> BirthdayGreetings = new List<Birthday>();
-
-        private static List<Note> _allNotesEver = new List<Note>();
-
-        public static List<Note> AllNotesEver()
+        static Controller()
         {
-            return _allNotesEver;
+            Appointments = new BinaryFileRepository<Appointment>("Appointment.xml");
+            BirthdayGreetings = new BinaryFileRepository<Birthday>("Birthdays.xml");
+            Notes = new BinaryFileRepository<Note>("Notes.xml");
+            Customers = new BinaryFileRepository<Customer>("Company.xml");
+            Contacts = new BinaryFileRepository<Contact>("Contacts.xml");
         }
+
+        public static IRepository<Customer> Customers { get; private set; }
+
+        public static IRepository<Contact> Contacts { get; set; }
+
+        public static IRepository<Birthday> BirthdayGreetings { get; set; }
+
+        public static IRepository<Appointment> Appointments { get; set; }
+
+        public static IRepository<Note> Notes { get; private set; }
 
         public static void AddNote(Note noteToAdd)
         {
-            _allNotesEver.Add(noteToAdd);
-            SaveNotes();
-        }
-
-        public static void SaveNotes()
-        {
-            var formatter = new BinaryFormatter();
-
-            Stream output = File.Create("Notes.xml");
-
-            formatter.Serialize(output, _allNotesEver);
-
-            output.Close();
-        }
-
-        public static void LoadNotes()
-        {
-            var formatter = new BinaryFormatter();
-            var input = File.Exists("Notes.xml") ? File.OpenRead("Notes.xml") : File.Create("Notes.xml");
-            if (input.Length > 0)
-                _allNotesEver = (List<Note>)formatter.Deserialize(input);
-
-            input.Close();
-
+            Notes.Add(noteToAdd);
+            Notes.Save();
         }
 
         public static string ImageDir(string foldername)
         {
-            var outputDir = Environment.CurrentDirectory;
+            var saveDir = Path.Combine(Environment.CurrentDirectory, foldername);
 
-            var saveDir = new DirectoryInfo(outputDir + @"\{0}\".Args(foldername));
-
-            if (!saveDir.Exists)
+            if (!Directory.Exists(saveDir))
             {
-                Directory.CreateDirectory(outputDir + @"\{0}\".Args(foldername));
+                Directory.CreateDirectory(saveDir);
             }
-            return saveDir.ToString();
+
+            return saveDir;
         }
 
         public delegate void EventsMethodType(Appointment appointment);
@@ -75,41 +52,32 @@ namespace CsiCrm
 
         public static void AddAppointment(Appointment appointment)
         {
-
-            AllAppointments.Add(appointment);
+            Appointments.Add(appointment);
             if (EventAdded != null)
                 EventAdded(appointment);
-        }
-
-        public static List<Customer> AllCustomers()
-        {
-            return _allCustomers;
         }
 
         public static bool AddCustomer(Customer customerToAdd)
         {
             bool result = true;
-            if (_allCustomers.Where(customer => customer.Name == customerToAdd.Name).Count() != 0)
+            if (Customers.Any(customer => customer.Name == customerToAdd.Name))
             {
                 result = false;
             }
             else
             {
-                _allCustomers.Add(customerToAdd);
-                SaveCustomers();
+                Customers.Add(customerToAdd);
+                Customers.Save();
             }
             return result;
-
-
         }
 
-
-        public static string AvalibleImageFormats()
+        public static string AvailableImageFormats()
         {
             var codecs = ImageCodecInfo.GetImageEncoders();
             var formatName = new List<string>();
             var fileExtension = new List<string>();
-            string avalibleImageFormats = "";
+            string availableImageFormats = "";
 
             foreach (var imageCodecInfo in codecs)
             {
@@ -119,21 +87,21 @@ namespace CsiCrm
 
             for (var numberOfFormatsCounter = 0; numberOfFormatsCounter < formatName.Count; numberOfFormatsCounter++)
             {
-                avalibleImageFormats += numberOfFormatsCounter != formatName.Count - 1
+                availableImageFormats += numberOfFormatsCounter != formatName.Count - 1
                             ? "{0}|{1}|".Args(formatName[numberOfFormatsCounter], fileExtension[numberOfFormatsCounter])
                             : "{0}|{1}".Args(formatName[numberOfFormatsCounter], fileExtension[numberOfFormatsCounter]);
             }
-            return avalibleImageFormats;
+            return availableImageFormats;
         }
 
         public static string AddPicture(string pictureDirectory, string fileName)
         {
-            var avalibleImageFormats = AvalibleImageFormats();
+            var availableImageFormats = AvailableImageFormats();
             var savePath = "";
             var openFileDialog1 = new OpenFileDialog
             {
                 InitialDirectory = "c:\\",
-                Filter = avalibleImageFormats,
+                Filter = availableImageFormats,
                 FilterIndex = 2,
                 RestoreDirectory = true
             };
@@ -156,37 +124,15 @@ namespace CsiCrm
 
         internal static void RemoveCustomer(Customer customer)
         {
-            _allCustomers.Remove(customer);
-            SaveCustomers();
+            Customers.Remove(customer);
+            Customers.Save();
         }
 
-        internal static void SaveCustomers()
-        {
-            var formatter = new BinaryFormatter();
-
-            Stream output = File.Create("Company.xml");
-
-            formatter.Serialize(output, _allCustomers);
-
-            output.Close();
-        }
-
-        internal static void LoadCustomers()
-        {
-            var formatter = new BinaryFormatter();
-
-            
-            var input = File.Exists("Company.xml") ? File.OpenRead("Company.xml") : File.Create("Company.xml");
-            if (input.Length > 0)
-                 _allCustomers = (List<Customer>)formatter.Deserialize(input);
-
-            input.Close();
-
-        }
         internal static string ChangeLogoName(string oldFileName, string newFileName)
         {
             var extension = Path.GetExtension(oldFileName);
             var oldPath = Path.GetDirectoryName(oldFileName);
+
             newFileName = oldPath + @"\" + newFileName + extension;
             File.Move(oldFileName, newFileName);
             return newFileName;
@@ -198,7 +144,7 @@ namespace CsiCrm
             var openFileDialog1 = new OpenFileDialog
             {
                 InitialDirectory = "c:\\",
-                Filter = AvalibleImageFormats(),
+                Filter = AvailableImageFormats(),
                 FilterIndex = 2,
                 RestoreDirectory = true
             };
@@ -226,7 +172,7 @@ namespace CsiCrm
             var openFileDialog1 = new OpenFileDialog
             {
                 InitialDirectory = "c:\\",
-                Filter = AvalibleImageFormats(),
+                Filter = AvailableImageFormats(),
                 FilterIndex = 2,
                 RestoreDirectory = true
             };
@@ -249,7 +195,7 @@ namespace CsiCrm
 
         internal static void AddBirthdayGreetings(Birthday birthday)
         {
-            if (BirthdayGreetings.Where(day => day.WhosBirthday == birthday.WhosBirthday).Count() < 1)
+            if (!BirthdayGreetings.Any(day => day.WhosBirthday == birthday.WhosBirthday))
                 BirthdayGreetings.Add(birthday);
         }
     }

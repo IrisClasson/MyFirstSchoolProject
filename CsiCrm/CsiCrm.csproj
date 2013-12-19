@@ -48,17 +48,18 @@
   <ItemGroup>
     <Compile Include="Address.cs" />
     <Compile Include="Appointment.cs" />
+    <Compile Include="BinaryFileRepository.cs" />
     <Compile Include="Birthday.cs" />
     <Compile Include="Calendar.cs" />
     <Compile Include="Contact.cs" />
     <Compile Include="Customer.cs" />
-    <Compile Include="FileManager.cs" />
     <Compile Include="Home1.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Home1.designer.cs">
       <DependentUpon>Home1.cs</DependentUpon>
     </Compile>
+    <Compile Include="IRepository.cs" />
     <Compile Include="MyExtensions.cs" />
     <Compile Include="Note.cs" />
     <Compile Include="Person.cs" />
